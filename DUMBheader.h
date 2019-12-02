@@ -9,6 +9,7 @@
 
 typedef struct messageNode{
         char* message;
+        int length;
         struct messageNode* next;
 }messageNode;
 
