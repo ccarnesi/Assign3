@@ -14,7 +14,7 @@ int main(int argc, char* argv[]){
         mailNode* head = malloc(sizeof(mailNode*));
         head = NULL;
         while(run ==1){
-                char payload[2048];
+                char* payload = malloc(sizeof(2048));
                 int n = read(0,payload,5);
                 int i = 0;
                 char command[6];
@@ -26,21 +26,34 @@ int main(int argc, char* argv[]){
                 if(strcmp("OPNBX", command)==0){
                         if(head == NULL){
                                 //error
+                                printf("Error: No mail Box with that name\n");
                         }else{
-                                currentBox = searchForMailBox(head, NULL);
+                                char c = NULL;
+                                int i = read(0, &c, 1);
+                                int n = read(0, payload, sizeof(payload));
+                                payload[n-1] = '\0';
+                                currentBox = searchForMailBox(head, payload);
                                 if(currentBox == NULL){
                                         //error
+                                        printf("Error: No mail box with that name\n");
                                 }else{
                                         //success
+                                        printf("OK!\n");
+                                        char* success = "OK!";
+                                        //send function to socket
                                 }
                         }
                 }else if(strcmp("GDBYE", command)==0){
                         run = 0;
                         //success
                 }else if(strcmp("CREAT", command)==0){
+                        char c = NULL;
+                        int i = read(0, &c, 1);
+                        int n = read(0, payload, sizeof(payload));
+                        payload[n-1] = '\0';
                         mailNode* newNode = malloc(sizeof(mailNode*));
                         newNode->next = NULL;
-                        newNode->name = NULL; //pass in name of Box
+                        newNode->name = payload; //pass in name of Box
                         if(head == NULL){
                                 //make head new box
                                 head = newNode;
@@ -84,9 +97,20 @@ int main(int argc, char* argv[]){
                         //must be in a box
                         if(currentBox == NULL){
                                 //error
+                                printf("No box was open\n");
                         }else{
-                                currentBox == NULL;
-                                //success
+                                char c = NULL;
+                                int i = read(0, &c, 1);
+                                int n = read(0, payload, sizeof(payload));
+                                payload[n-1] = '\0';
+                                printf("%s\n", payload);
+                                printf("%s\n", currentBox->name);
+                                if(currentBox!= NULL && strcmp(currentBox->name, payload)==0){
+                                        currentBox = NULL;
+                                        printf("OK!\n");
+                                }else{
+                                        printf("Dont have that box currently open\n");
+                                }
                         }
                 }else if(strcmp("HELLO", command)==0){
                         //return ok upon start else throw error
@@ -106,7 +130,7 @@ void addMailBoxToEnd(mailNode* mail, mailNode* head){
 mailNode* searchForMailBox(mailNode* head, char* mailName){
         mailNode* current = head;
         while(current != NULL){
-
+                printf("loop: %s\n", current->name);
                 if(strcmp(current->name, mailName)==0){
                         return current;
                 }
