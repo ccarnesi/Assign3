@@ -53,7 +53,6 @@ int main(int argc, char* argv[]){
                     strcpy(payload, "GDBYE!");
                     //send load
                     printf("%s\n", payload);
-                    printf("Goodbye!\n");
                     run = 1;
             }else{
                     printf("Error: Unknown Command. Try again\n");

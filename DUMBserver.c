@@ -1,10 +1,11 @@
 #include "DUMBheader.h"
 
-void addMailBoxToEnd(mailNode* mail, mailNode* head);
+int addMailBoxToEnd(mailNode* mail, mailNode* head);
 mailNode* searchForMailBox(mailNode* head, char* mailName);
 void addMessage(int size, char * message, mailNode* current);
 messageNode* fetchMessage(mailNode* mailBox);
 int deleteMailBox(char* name, mailNode* head);
+int checkMailBoxConstraints(char* name);
 
 
 int main(int argc, char* argv[]){
@@ -25,57 +26,66 @@ int main(int argc, char* argv[]){
                 }
                 command[5] = '\0';
                 if(strcmp("OPNBX", command)==0){
-                        printf("HEREOP\n");
-                        if(head == NULL){
-                                //error
-                                printf("Error: No mail Box with that name\n");
-                        }else{
                                 char c = NULL;
                                 int i = read(0, &c, 1);
                                 int n = read(0, payload, sizeof(payload));
                                 payload[n-1] = '\0';
-                                currentBox = searchForMailBox(head, payload);
-                                printf("currentBox: %s\n",currentBox->name);
+                                if(checkMailBoxConstraints(payload)==0){
+                                        printf("ER:WHAT?\n");
+                                        continue;
+                                }
+                                if(head==NULL){
+                                        printf("ER:NXEST\n");
+                                }
+                                mailNode* foundBox = searchForMailBox(head, payload);
+                                if(currentBox == foundBox){
+                                        printf("ER:OPEND\n");
+                                        continue;
+                                }else{
+                                        currentBox = foundBox;
+                                }
                                 if(currentBox == NULL){
                                         //error
-                                        printf("Error: No mail box with that name\n");
+                                        printf("ER:NXEST\n");
                                 }else{
                                         //success
                                         printf("OK!\n");
-                                        char* success = "OK!";
                                         //send function to socket
                                 }
-                        }
-                }else if(strcmp("GDBYE", command)==0){
-                        run = 0;
-                        //success
                 }else if(strcmp("CREAT", command)==0){
-                        printf("HERECR\n");
                         char c = NULL;
                         int i = read(0, &c, 1);
                         int n = read(0, payload, sizeof(payload));
                         payload[n-1] = '\0';
+                        if(checkMailBoxConstraints(payload)==0){
+                                printf("ER:WHAT?\n");
+                                continue;
+                        }
                         mailNode* newNode = malloc(sizeof(mailNode*));
                         newNode->next = NULL;
                         newNode->name = payload; //pass in name of Box
-                        if(head == NULL){
-                                //make head new box
-                                head = newNode;
-                        }else{
-                                //append to end
-                                addMailBoxToEnd(newNode, head);
+                        //append to end
+                        if(head ==NULL){
+                            head = newNode;
+                            printf("Ok!\n");
+                            continue;
                         }
-                        printf("OK!\n");
+                        int ret = addMailBoxToEnd(newNode, head);
+                        if(ret==0){
+                                printf("ER:EXIST\n");
+                        }else{
+                                printf("OK!\n");
+                        }
                 }else if(strcmp("NXTMG", command)==0){
                         //must be in a box
                         if(currentBox == NULL){
                                 //error
-                                printf("Error: No box open\n");
+                                printf("ER:NOOPN\n");
                         }else{
                                 messageNode* mess = fetchMessage(currentBox);
                                 if(mess ==NULL){
                                         //error
-                                        printf("Error:Empty mailbox\n");
+                                        printf("ER:EMPTY\n");
                                 }else{
                                         //return message
                                         printf("OK!%d!%s\n",mess->length, mess->message);
@@ -85,14 +95,35 @@ int main(int argc, char* argv[]){
                         //must be in a box
                         if(currentBox==NULL){
                                 //error
-                                printf("Error: No Box open\n");
+                                printf("ER:NOOPN\n");
                         }else{
                                 //pass message instead of NULL
                                 char c = NULL;
                                 int i = read(0, &c, 1);
-                                int n = read(0, payload, sizeof(payload));
-                                payload[n-1] = '\0';
-                                addMessage(n-1, payload,currentBox);
+                                c = '0';
+                                int index = 0;
+                                char bytes[10];
+                                while(c!= '!'){
+                                        read(0, &c, 1);
+                                        bytes[index] = c;
+                                        index++;
+                                }
+                                bytes[++index] = '\0';
+                                int num = atoi(bytes);
+                                ++num;
+                                char* messToRead = malloc(sizeof(num));
+                                int n = read(0, messToRead, num);
+                                if(messToRead[n-1]!= '\n'){//change to \0 when server is hooked up
+                                        printf("ER:WHAT?\n");
+                                        c = ' ';
+                                        while(c!='\n'){//change to \0
+                                            read(0,&c, 1);
+                                        }
+                                        continue;
+                                }
+                                messToRead[n-1] = '\0';
+                                addMessage(num-1, messToRead,currentBox);
+                                printf("OK!%d\n", num-1);
                         }
                 }else if(strcmp("DELBX", command)==0){
                         if(head == NULL){
@@ -135,12 +166,16 @@ int main(int argc, char* argv[]){
     return 0;    
 }
 
-void addMailBoxToEnd(mailNode* mail, mailNode* head){
+int addMailBoxToEnd(mailNode* mail, mailNode* head){
         mailNode* current = head;
         while(current->next != NULL){
+                if(strcmp(current->name,mail->name)==0){
+                        return 0;
+                }
                 current = current->next;
         }
         current->next = mail;
+        return 1;
 }
 
 mailNode* searchForMailBox(mailNode* head, char* mailName){
@@ -198,7 +233,22 @@ int deleteMailBox(char* name, mailNode* head){
         return 0;
 }
 
-
+int checkMailBoxConstraints(char* name){
+        int counter = 0;
+        int index = 0;
+        while(name[index]!= '\0'){
+                counter++;
+                index++;
+        }
+        counter++;
+        if(counter>25){
+            return 0;
+        }
+        if(isdigit(name[0])){
+                return 0;
+        }
+        return 1;
+}
 
 
 
