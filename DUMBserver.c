@@ -29,7 +29,7 @@ int main(int argc, char* argv[]){
 
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(5269);
+    address.sin_port = htons(6969);
 
     if((bind(server_fd, (struct sockaddr *)&address, sizeof(address)))<0){
             printf("bind failed\n");
