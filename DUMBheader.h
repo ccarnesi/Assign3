@@ -16,7 +16,7 @@ typedef struct messageNode{
 
 typedef struct mailNode{
         char* name;
-        int count;
+        pthread_mutex_t nodeLock;
         struct messageNode* messages;
         struct mailNode* next;
 }mailNode;

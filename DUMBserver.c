@@ -44,8 +44,12 @@ void threadFunc(void* args){
                                         printf("ER:WHAT?\n");
                                         continue;
                                 }
+                                
                                 if(head==NULL){
                                         printf("ER:NXEST\n");
+                                        continue;
+                                }else if(currentBox!=NULL){
+                                        printf("ALOPN\n");
                                         continue;
                                 }
                                 mailNode* foundBox = searchForMailBox(head, payload);
@@ -60,7 +64,13 @@ void threadFunc(void* args){
                                         printf("ER:NXEST\n");
                                 }else{
                                         //success
-                                        printf("OK!\n");
+                                        if(pthread_mutex_trylock(&(currentBox->nodeLock))==0){
+                                                printf("OK!\n");
+                                                continue;
+
+                                        }
+                                        currentBox = NULL;
+                                        printf("ER:OPEND\n");
                                         //send function to socket
                                 }
                 }else if(strcmp("CREAT", command)==0){
@@ -74,6 +84,7 @@ void threadFunc(void* args){
                         }
                         mailNode* newNode = malloc(sizeof(mailNode*));
                         newNode->next = NULL;
+                        pthread_mutex_init(&(newNode->nodeLock), NULL);
                         newNode->name = payload; //pass in name of Box
                         //append to end
                         if(head ==NULL){
@@ -163,9 +174,11 @@ void threadFunc(void* args){
                                 }else if(n ==-1){
                                         //error not empty
                                         printf("ER:NOTMT\n");
-                                }else{
+                                }else if(n==0){
                                         //error doesnt exist
                                         printf("ER:NEXST\n");
+                                }else{
+                                        printf("ER:OPEND\n");
                                 }
                         }
                 }else if(strcmp("CLSBX", command)==0){
@@ -180,6 +193,7 @@ void threadFunc(void* args){
                                 int n = read(0, payload, 2048);
                                 payload[n-1] = '\0';
                                 if(currentBox!= NULL && strcmp(currentBox->name, payload)==0){
+                                        pthread_mutex_unlock(&(currentBox->nodeLock));
                                         currentBox = NULL;
                                         printf("OK!\n");
                                 }else{
@@ -189,6 +203,9 @@ void threadFunc(void* args){
                 }else if(strcmp("HELLO", command)==0){
                         printf("HELLO DUMBv0 ready!\n");
                         readTillEnd();
+                }else if(strcmp("GDBYE", command)==0){
+                        readTillEnd();
+                        return;
                 }else{
                         printf("ER:WHAT?\n");
                         if(n==5){
@@ -268,9 +285,13 @@ int deleteMailBox(char* name, mailNode* head){
                 if(head->messages!=NULL){
                             pthread_mutex_unlock(&mainLock);
                             return -1;
+                }else if(pthread_mutex_trylock(&(head->nodeLock))!=0){
+                                pthread_mutex_unlock(&mainLock);
+                                return -2;
                 }
                 head = head->next;
                 pthread_mutex_unlock(&mainLock);
+                pthread_mutex_unlock(&(current->nodeLock));
                 return 1;
         }
         while(current!=NULL){
@@ -278,9 +299,13 @@ int deleteMailBox(char* name, mailNode* head){
                         if(current->messages!=NULL){
                                 pthread_mutex_unlock(&mainLock);
                                 return -1;
+                        }else if(pthread_mutex_trylock(&(current->nodeLock))!=0){
+                                pthread_mutex_unlock(&mainLock);
+                                return -2;
                         }
                         prev->next = current->next;
                         pthread_mutex_unlock(&mainLock);
+                        pthread_mutex_unlock(&(current->nodeLock));
                         return 1;
                 }
                 prev = current;
