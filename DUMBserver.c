@@ -19,8 +19,9 @@ int main(int argc, char* argv[]){
 
     signal(SIGINT, signalHandler);
 
-    int server_fd, conn_fd;
+    int server_fd, conn_fd, addrlen;
     struct sockaddr_in address;
+    addrlen = sizeof(address);
 
     if((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0){
             printf("socket failed\n");
@@ -41,7 +42,7 @@ int main(int argc, char* argv[]){
             return -1;
     }
 
-    if((conn_fd = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)sizeof(address)))<0){
+    if((conn_fd = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen))<0){
             printf("connection error\n");
             return -1;
     }else{
