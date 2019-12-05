@@ -5,7 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
-
+#include <pthread.h>
 
 typedef struct messageNode{
         char* message;
@@ -16,6 +16,7 @@ typedef struct messageNode{
 
 typedef struct mailNode{
         char* name;
+        int count;
         struct messageNode* messages;
         struct mailNode* next;
 }mailNode;

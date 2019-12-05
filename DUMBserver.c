@@ -6,9 +6,19 @@ void addMessage(int size, char * message, mailNode* current);
 messageNode* fetchMessage(mailNode* mailBox);
 int deleteMailBox(char* name, mailNode* head);
 int checkMailBoxConstraints(char* name);
+void readTillEnd();
+void threadFunc(void* args);
+
+pthread_mutex_t mainLock;
 
 
 int main(int argc, char* argv[]){
+    pthread_mutex_init(&mainLock, NULL);
+    threadFunc(NULL); 
+    return 0;    
+}
+
+void threadFunc(void* args){
         int run =1;
         mailNode* currentBox = malloc(sizeof(mailNode*));
         currentBox = NULL;
@@ -28,7 +38,7 @@ int main(int argc, char* argv[]){
                 if(strcmp("OPNBX", command)==0){
                                 char c = NULL;
                                 int i = read(0, &c, 1);
-                                int n = read(0, payload, sizeof(payload));
+                                int n = read(0, payload, 2048);
                                 payload[n-1] = '\0';
                                 if(checkMailBoxConstraints(payload)==0){
                                         printf("ER:WHAT?\n");
@@ -36,9 +46,10 @@ int main(int argc, char* argv[]){
                                 }
                                 if(head==NULL){
                                         printf("ER:NXEST\n");
+                                        continue;
                                 }
                                 mailNode* foundBox = searchForMailBox(head, payload);
-                                if(currentBox == foundBox){
+                                if(currentBox!= NULL && currentBox == foundBox){
                                         printf("ER:OPEND\n");
                                         continue;
                                 }else{
@@ -55,7 +66,7 @@ int main(int argc, char* argv[]){
                 }else if(strcmp("CREAT", command)==0){
                         char c = NULL;
                         int i = read(0, &c, 1);
-                        int n = read(0, payload, sizeof(payload));
+                        int n = read(0, payload, 2048);
                         payload[n-1] = '\0';
                         if(checkMailBoxConstraints(payload)==0){
                                 printf("ER:WHAT?\n");
@@ -67,7 +78,7 @@ int main(int argc, char* argv[]){
                         //append to end
                         if(head ==NULL){
                             head = newNode;
-                            printf("Ok!\n");
+                            printf("OK!\n");
                             continue;
                         }
                         int ret = addMailBoxToEnd(newNode, head);
@@ -89,13 +100,18 @@ int main(int argc, char* argv[]){
                                 }else{
                                         //return message
                                         printf("OK!%d!%s\n",mess->length, mess->message);
+                                        
                                 }
                         }
+                        readTillEnd();
                 }else if(strcmp("PUTMG", command)==0){
                         //must be in a box
                         if(currentBox==NULL){
                                 //error
                                 printf("ER:NOOPN\n");
+                                readTillEnd();
+                                //READ UNTIL END OF PAYLOAD
+                                continue;
                         }else{
                                 //pass message instead of NULL
                                 char c = NULL;
@@ -113,12 +129,12 @@ int main(int argc, char* argv[]){
                                 ++num;
                                 char* messToRead = malloc(sizeof(num));
                                 int n = read(0, messToRead, num);
-                                if(messToRead[n-1]!= '\n'){//change to \0 when server is hooked up
+                                if(messToRead[n-1]!= '\n'|| n<num){//change to \0 when server is hooked up
                                         printf("ER:WHAT?\n");
-                                        c = ' ';
-                                        while(c!='\n'){//change to \0
-                                            read(0,&c, 1);
+                                        if(n<num){
+                                                continue;
                                         }
+                                        readTillEnd();
                                         continue;
                                 }
                                 messToRead[n-1] = '\0';
@@ -128,53 +144,82 @@ int main(int argc, char* argv[]){
                 }else if(strcmp("DELBX", command)==0){
                         if(head == NULL){
                                 //report error
+                                printf("ER:NEXST\n");
+                                readTillEnd();
                         }else{
                                 //Search list of boxes. if found return ok else report error
-                                int n = deleteMailBox(NULL, head);
+                                char c = NULL;
+                                read(0, &c, 1);
+                                int x = read(0, payload, 2048);
+                                payload[x-1] = '\0';
+                                if(checkMailBoxConstraints(payload)==0){
+                                        printf("ER:WHAT?\n");
+                                        continue;
+                                }
+                                int n = deleteMailBox(payload, head);
                                 if(n==1){
                                         //success
+                                        printf("OK!\n");
+                                }else if(n ==-1){
+                                        //error not empty
+                                        printf("ER:NOTMT\n");
                                 }else{
-                                        //error couldnt find
+                                        //error doesnt exist
+                                        printf("ER:NEXST\n");
                                 }
                         }
                 }else if(strcmp("CLSBX", command)==0){
                         //must be in a box
                         if(currentBox == NULL){
                                 //error
-                                printf("No box was open\n");
+                                printf("ER:NOOPN\n");
+                                readTillEnd();
                         }else{
                                 char c = NULL;
                                 int i = read(0, &c, 1);
-                                int n = read(0, payload, sizeof(payload));
+                                int n = read(0, payload, 2048);
                                 payload[n-1] = '\0';
-                                printf("%s\n", payload);
-                                printf("%s\n", currentBox->name);
                                 if(currentBox!= NULL && strcmp(currentBox->name, payload)==0){
                                         currentBox = NULL;
                                         printf("OK!\n");
                                 }else{
-                                        printf("Dont have that box currently open\n");
+                                        printf("ER:NOOPN\n");
                                 }
                         }
                 }else if(strcmp("HELLO", command)==0){
-                        //return ok upon start else throw error
+                        printf("HELLO DUMBv0 ready!\n");
+                        readTillEnd();
                 }else{
-
+                        printf("ER:WHAT?\n");
+                        if(n==5){
+                                readTillEnd();
+                        }
                 }
-
         }
-    return 0;    
 }
 
+
+
+void readTillEnd(){
+        char c = NULL;
+        while(c!= '\n'){
+            read(0, &c, 1);
+        }
+}
+
+
 int addMailBoxToEnd(mailNode* mail, mailNode* head){
+        pthread_mutex_lock(&mainLock);
         mailNode* current = head;
         while(current->next != NULL){
                 if(strcmp(current->name,mail->name)==0){
+                        pthread_mutex_unlock(&mainLock);
                         return 0;
                 }
                 current = current->next;
         }
         current->next = mail;
+        pthread_mutex_unlock(&mainLock);
         return 1;
 }
 
@@ -216,20 +261,32 @@ messageNode* fetchMessage(mailNode* mailBox){
 }
 
 int deleteMailBox(char* name, mailNode* head){
+        pthread_mutex_lock(&mainLock);
         mailNode* current = head;
         mailNode* prev = NULL;
         if(strcmp(head->name, name)==0){
+                if(head->messages!=NULL){
+                            pthread_mutex_unlock(&mainLock);
+                            return -1;
+                }
                 head = head->next;
+                pthread_mutex_unlock(&mainLock);
                 return 1;
         }
         while(current!=NULL){
                 if(strcmp(current->name, name)==0){
+                        if(current->messages!=NULL){
+                                pthread_mutex_unlock(&mainLock);
+                                return -1;
+                        }
                         prev->next = current->next;
+                        pthread_mutex_unlock(&mainLock);
                         return 1;
                 }
                 prev = current;
                 current = current->next;
         }
+        pthread_mutex_unlock(&mainLock);
         return 0;
 }
 
@@ -241,7 +298,10 @@ int checkMailBoxConstraints(char* name){
                 index++;
         }
         counter++;
-        if(counter>25){
+        if(counter<=1){
+                return 0;
+        }
+        if(counter>26){
             return 0;
         }
         if(isdigit(name[0])){
