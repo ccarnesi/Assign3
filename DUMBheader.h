@@ -6,6 +6,11 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <pthread.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <signal.h>
+
+
 
 typedef struct messageNode{
         char* message;

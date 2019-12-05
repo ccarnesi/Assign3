@@ -8,13 +8,46 @@ int deleteMailBox(char* name, mailNode* head);
 int checkMailBoxConstraints(char* name);
 void readTillEnd();
 void threadFunc(void* args);
+void signalHandler(int num);
 
 pthread_mutex_t mainLock;
 
 
 int main(int argc, char* argv[]){
+    //init main lock
     pthread_mutex_init(&mainLock, NULL);
-    threadFunc(NULL); 
+
+    signal(SIGINT, signalHandler);
+
+    int server_fd, conn_fd;
+    struct sockaddr_in address;
+
+    if((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0){
+            printf("socket failed\n");
+            return -1;
+    }
+
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(5269);
+
+    if((bind(server_fd, (struct sockaddr *)&address, sizeof(address)))<0){
+            printf("bind failed\n");
+            return -1;
+    }
+
+    if((listen(server_fd, 3))<0){
+            printf("listen failed\n");
+            return -1;
+    }
+
+    if((conn_fd = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)sizeof(address)))<0){
+            printf("connection error\n");
+            return -1;
+    }else{
+            printf("WOOHOO\n");
+//            threadFunc(NULL);
+    }
     return 0;    
 }
 
@@ -215,7 +248,10 @@ void threadFunc(void* args){
         }
 }
 
-
+void signalHandler(int num){
+        printf("CTRL C pressed\n");
+        exit(0);
+}
 
 void readTillEnd(){
         char c = NULL;
