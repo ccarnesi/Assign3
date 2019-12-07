@@ -7,7 +7,7 @@ messageNode* fetchMessage(mailNode* mailBox);
 int deleteMailBox(char* name, mailNode** head);
 int checkMailBoxConstraints(char* name);
 void readTillEnd();
-void threadFunc(void* args);
+void* threadFunc(void* args);
 struct tm* getDateFunc();
 void stdOut(char* ip, char* command, struct tm* date);
 void stdErr(char* ip, char* error, struct tm* date);
@@ -19,7 +19,25 @@ int main(int argc, char* argv[]){
     //init main lock
     pthread_mutex_init(&mainLock, NULL);
 
-/*
+    if(argc<2||argc>2){
+            printf("Invalid number of arguments\n");
+            return -1;
+    }
+    int port = atoi(argv[1]);
+
+
+
+    char hostBuffer[256];
+    char* IPbuffer;
+    int hostName;
+    struct hostent* hostInfo;
+    //get ip address of machine
+    hostName = gethostname(hostBuffer, sizeof(hostBuffer));
+    hostInfo = gethostbyname(hostBuffer);
+    IPbuffer = inet_ntoa(*((struct in_addr*)hostInfo->h_addr_list[0]));
+
+    printf("%s\n", IPbuffer);
+
     int server_fd, conn_fd, addrlen;
     struct sockaddr_in address;
     addrlen = sizeof(address);
@@ -30,8 +48,8 @@ int main(int argc, char* argv[]){
     }
 
     address.sin_family = AF_INET;
-    address.sin_addr.s_addr = inet_addr("128.6.13.144");
-    address.sin_port = htons(6969);
+    address.sin_addr.s_addr = inet_addr(IPbuffer);
+    address.sin_port = htons(port);
 
     if((bind(server_fd, (struct sockaddr *)&address, sizeof(address)))<0){
             printf("bind failed\n");
@@ -42,23 +60,22 @@ int main(int argc, char* argv[]){
             printf("listen failed\n");
             return -1;
     }
-*/
-    //if((conn_fd = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen))<0){
-       //     printf("connection error\n");
-     //       return -1;
-   // }else{
-  //          printf("WOOHOO\n");
-  //
-            threadFunc(NULL);
-//    }
+        while((conn_fd = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen))){
+            pthread_t thread;
+//            pthread_detach(thread);          
+            pthread_create(&thread, NULL, threadFunc, NULL);
+
+        }
     return 0;    
 }
 
-void threadFunc(void* args){
+void* threadFunc(void* args){
         int run =1;
         
 
         struct tm* date = getDateFunc();
+
+        stdOut(NULL, "connected", date);
 
         mailNode* currentBox = malloc(sizeof(mailNode*));
         currentBox = NULL;
@@ -257,7 +274,7 @@ void threadFunc(void* args){
                 }else if(strcmp("GDBYE", command)==0){
                         stdOut(NULL, "GDBYE", date);
                         readTillEnd();
-                        return;
+                        return NULL;;
                 }else{
                         //printf("ER:WHAT?\n");
                         stdErr(NULL, "ER:WHAT?", date);
@@ -266,6 +283,7 @@ void threadFunc(void* args){
                         }
                 }
         }
+        stdOut(NULL, "disconnected", date);
 }
 
 

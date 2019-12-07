@@ -11,7 +11,7 @@
 #include <signal.h>
 #include <arpa/inet.h>
 #include <time.h>
-
+#include <netdb.h>
 
 typedef struct messageNode{
         char* message;
