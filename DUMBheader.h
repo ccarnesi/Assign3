@@ -9,7 +9,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <signal.h>
-
+#include <arpa/inet.h>
+#include <time.h>
 
 
 typedef struct messageNode{
@@ -26,6 +27,9 @@ typedef struct mailNode{
         struct mailNode* next;
 }mailNode;
 
+typedef struct threadstruct{
+        struct tm* date;
+} threadstruct;
 
 
 

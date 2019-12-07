@@ -14,6 +14,7 @@ int main(int argc, char* argv[]){
 		return -1;
 	}
 	serv_addr.sin_family= AF_INET;
+    serv_addr.sin_addr.s_addr = inet_addr("128.6.13.144");
 	serv_addr.sin_port = htons(6969);
 	while(i<3){
 		if(connect(sock,(struct sockaddr *)&serv_addr,sizeof(serv_addr))<0){
