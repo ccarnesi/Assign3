@@ -12,6 +12,7 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include <netdb.h>
+#include <math.h>
 
 typedef struct messageNode{
         char* message;
@@ -28,7 +29,9 @@ typedef struct mailNode{
 }mailNode;
 
 typedef struct threadstruct{
-        struct tm* date;
+        struct sockaddr_in* clientSock;
+        int* WRsocket;
+        mailNode** head;
 } threadstruct;
 
 
