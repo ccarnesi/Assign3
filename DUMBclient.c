@@ -1,12 +1,20 @@
 #include "DUMBheader.h"
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 void readTillNewLine();
 void sendpackage(),runner(),mailboxHandler(char type[], char mailbox[]);
 
 
 int main(int argc, char* argv[]){
+	if(argc != 3){
+		printf("Invalid number of arguments \n");
+		return -1;
+	}
 	int i = 0;
+	int hellowork = 0; 
+	int port = atoi(argv[2]);
 	/*this is where we attempt to establish the connection three times*/
 	int sock = 0, valread;
 	struct sockaddr_in serv_addr;
@@ -15,29 +23,30 @@ int main(int argc, char* argv[]){
 		return -1;
 	}
 	serv_addr.sin_family= AF_INET;
-    	serv_addr.sin_addr.s_addr = inet_addr("128.6.13.144");
-	serv_addr.sin_port = htons(6969);
+    	serv_addr.sin_addr.s_addr = inet_addr(argv[1]);
+	serv_addr.sin_port = htons(port);
 	char hello[] = "HELLO";
 	while(i<3){
 		if(connect(sock,(struct sockaddr *)&serv_addr,sizeof(serv_addr))<0){
 			++i;
+			printf("iter 1\n");
 		}
 		else{
 			// we reached the server now lets see if hello works
-		       sendpackage(hello,socket,0);
-		       
+			printf("Conneted now trying hello\n");
+		       sendpackage(hello,sock,0,&hellowork);
+		       if(hellowork==1){
+			       printf("DUMB mailbox is fully connected!\n");
+			       break;
+			}   
 		}
 	}
 	if(i==3){
-		printf("Error, unable to connect to the server, terminating program");
+		printf("Error, unable to connect to the server, terminating program\n");
 		return -1;
 	}
-
-	
-	/*if successfull call runner*/
-	/*
-	runner();
-	*/
+	runner(sock);
+	return 0;
 }
 
 void runner(int socket){
@@ -53,6 +62,7 @@ void runner(int socket){
             if(n<=7){
                 command[n-1] = '\0';
             } 
+	    /*if these things don twork then just use strcat didnt realize that was a thing earlier*/
             if(strcmp("open", command)==0){
 		    /*after mailbox is open we can just start reading other commands*/
                     printf("What mailbox would you like to open?\n");
@@ -60,21 +70,21 @@ void runner(int socket){
 		    strcpy(payload,"OPNBX!");
 		    strcpy(&payload[6],mailbox);
 		    /*this is where we send off to server and await reply*/
-		    sendpackage(payload,socket,3);
+		    sendpackage(payload,socket,3,&run);
             }else if (strcmp("create", command)==0){
 		    /*created mailbox but we still have to open one*/
                     printf("What would you like to call the mailbox?\n");
 		    read(0,mailbox, sizeof(mailbox));
 		    strcpy(payload,"CREAT!");
 		    strcpy(&payload[6],mailbox);
-		    sendpackage(payload,socket,2);
+		    sendpackage(payload,socket,2,&run);
             }else if (strcmp("delete", command)==0){
 		    /*expect to get somehting back from server but after that we are good*/
                     printf("Which mailbox would you like to delete?\n");
 		    read(0,mailbox, sizeof(mailbox));
 		    strcpy(payload,"DELBX!");
 		    strcpy(&payload[6],mailbox);
-		    sendpackage(payload,socket,6);
+		    sendpackage(payload,socket,6,&run);
 		    /*add in error checker*/
             }else if (strcmp("close", command)==0){
 		    /*similar to close box if we close it then we're good*/
@@ -82,22 +92,27 @@ void runner(int socket){
 		    read(0,mailbox,sizeof(mailbox));
 		    strcpy(payload,"ClSBX!");
 		    strcpy(&payload[6],mailbox);
-		    sendpackage(payload,socket,7);
+		    sendpackage(payload,socket,7,&run);
             }else if (strcmp("next", command)==0){
 		    /*mailbox handler should print next message that we are trying to get*/
 		    strcpy(payload,"NXTMG");
-		    sendpackage(payload,socket,4);
+		    sendpackage(payload,socket,4,&run);
 		    /*run error checker and print msg*/
             }else if (strcmp("put", command)==0){
                     printf("What message would you like to put in the mailbox?\n");
-		    read(0,message,sizeof(message));
-		    strcpy(&payload[6],message);
+		    int len = read(0,message,sizeof(message));
+		    // if this doesnt work swtich to sprinf
+		    char snum[5]; 
+		    sprintf(snum,"%d",len);
                     strcpy(payload, "PUTMG!");
-		    sendpackage(payload,socket,5);
+		    strcpy(&payload[6],snum);
+		    strcpy(&payload[6+strlen(snum)],"!");
+		    strcpy(&payload[7+strlen(snum)],message);
+		    sendpackage(payload,socket,5,&run);
             }else if (strcmp("quit", command)==0){
 		    // have to edit this to make it work smoother
                     strcpy(payload, "GDBYE!");
-		    sendpackage(payload,socket,1);
+		    sendpackage(payload,socket,1,&run);
                     //send load
                     run = 1;
             }else{
@@ -120,12 +135,24 @@ void readTillNewLine(){
 /*method checks first three letters to see if we got an error or not*/
 int checker(int socket,int command,int len){
 	char message[8];
+	message[0] = 0;
 	read(socket,message,3);
+	if(message[0]==0 && command==1){
+		printf("Successfully quitting");
+		return 69;
+	}
+	if(strcmp("HEL",message)==0 && command ==0){
+		return 420;
+	}
 	if(strcmp("OK!",message)==0){
 		/*successful interaction with server now depending on what command it was figure it out*/
 		/*important for when we are getting the next message must display that message*/
-		if(command==1){
-			printf("Succesfully communicated with server\n");
+		if(command==6 || command == 2 || command == 7 ||command == 5){
+			printf("Successfully processed command\n");
+			return 0;
+		}
+		else if(command ==3){
+			printf("Successsfully opened box, you now have exclusive accesss to it");
 			return 0;
 		}
 		else if(command==4){
@@ -143,6 +170,7 @@ int checker(int socket,int command,int len){
 			printf("Next message received: %s \n",next);
 			return 0;
 		}	
+			
 	}
 	else{
 		char substr[5];
@@ -239,13 +267,21 @@ int checker(int socket,int command,int len){
 }
 
 // helper method that sends the message and awaits the response from the socket
-void sendpackage(char * payload, int socket,int command){
+void sendpackage(char * payload, int socket,int command,int * num){
 	if(send(socket, payload, strlen(payload), 0)<0){
 		printf("Send Failed");
 		return;
 	}
 	// helper method that chekcs all of the possible errors or prints out correct message
-	checker(socket,command,strlen(payload));
+	int fquit = checker(socket,command,strlen(payload));
+	if(fquit ==69){
+		*num = 1;
+	}
+	if (fquit ==420){
+		*num =1;
+	}
+	return;
+
 }
 		
 void mailboxHandler(char type[], char mailbox[]){

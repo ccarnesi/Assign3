@@ -1,5 +1,5 @@
 all: DUMBserver.c DUMBclient.c
-	gcc DUMBserver.c -o DUMBserve -lpthread
+	gcc DUMBserver.c -o DUMBserve -lpthread -lm
 	gcc DUMBclient.c -o DUMBclient
 
 serve: DUMBserver.c
