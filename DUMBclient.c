@@ -109,7 +109,7 @@ void runner(int socket){
                     printf("What message would you like to put in the mailbox?\n");
 		    int len = read(0,message,sizeof(message));
 		    // if this doesnt work swtich to sprinf
-		    message[len];
+		    message[len] = '\0';
 		    char snum[5]; 
 		    sprintf(snum,"%d",len);
                     strcpy(payload, "PUTMG!");
