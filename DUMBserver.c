@@ -302,7 +302,7 @@ void* threadFunc(void* args){
                         //printf("HELLO DUMBv0 ready!\n");
                         stdOut(ipName, "HELLO", date);
                         write(*threadArgs->WRsocket, "HELLO DUMBv0 ready!", 20);
-                        //readTillEnd(*threadArgs->WRsocket);
+                        readTillEnd(*threadArgs->WRsocket);
                 }else if(strcmp("GDBYE", command)==0){
                         stdOut(ipName, "GDBYE", date);
                         readTillEnd(*threadArgs->WRsocket);

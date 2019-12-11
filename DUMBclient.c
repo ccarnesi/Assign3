@@ -25,7 +25,7 @@ int main(int argc, char* argv[]){
 	serv_addr.sin_family= AF_INET;
     	serv_addr.sin_addr.s_addr = inet_addr(argv[1]);
 	serv_addr.sin_port = htons(port);
-	char hello[] = "HELLO\0";
+	char hello[] = "HELLO";
 	while(i<3){
 		if(connect(sock,(struct sockaddr *)&serv_addr,sizeof(serv_addr))<0){
 			++i;
@@ -272,7 +272,8 @@ int checker(int socket,int command,int len){
 
 // helper method that sends the message and awaits the response from the socket
 void sendpackage(char * payload, int socket,int command,int * num){
-	if(send(socket, payload, strlen(payload), 0)<0){
+    printf("size: %d", strlen(payload));
+	if(send(socket, payload, strlen(payload)+1, 0)<0){
 		printf("Send Failed");
 		return;
 	}
