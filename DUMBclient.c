@@ -113,7 +113,8 @@ void runner(int socket){
 		    // if this doesnt work swtich to sprinf
 		    message[len-1] = '\0';
 		    char snum[5]; 
-		    sprintf(snum,"%d",len);
+		    int diglen = sprintf(snum,"%d",len);
+		    snum[diglen-1] = '\0';
                     strcpy(payload, "PUTMG!");
 		    strcat(payload,snum);
 		    strcat(payload,"!");
@@ -183,7 +184,8 @@ int checker(int socket,int command,int len){
 				++count;
 			}
 			char next[len];
-			read(socket,&next,len);
+			int meslen = read(socket,&next,len);
+			next[meslen]= '\0';
 			printf("Next message received: %s \n",next);
 		}	
 		readTillNewLine(socket);
@@ -191,17 +193,15 @@ int checker(int socket,int command,int len){
 			
 	}
 	else{
-		char substr[5];
-		read(socket,&message[3],5);
-		strcpy(substr,&message[3]);
-		printf("%s\n",message);
+		char substr[6];
+		int errlen = read(socket,substr,5);	
+		substr[errlen] - '\0';
+		printf("%s\n",substr);
 		/*error happened now time to figure out what it was*/
 		/* gd 1 , creat 2, 6 delbx 3 opnbx, 7 clsbx, 4 nxtmg, 5 putmg*/
 		if(command==1){
 			/* if we see anything then its an error*/
-			if(substr[0]!='\0'){
-				printf("Error, unable to close connection with the server\n");
-			}
+			printf("Error, unable to close connection with the server\n");
 		}
 		else if(command ==2){
 			if(strcmp("EXIST",substr)==0){
