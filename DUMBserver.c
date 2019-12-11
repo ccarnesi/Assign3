@@ -180,13 +180,19 @@ void* threadFunc(void* args){
                                         write(threadArgs->WRsocket, "ER:EMPTY", 9);
                                         stdErr(ipName, "ER:EMPTY", date);
                                 }else{
-                                        int digits = floor(log10(abs(mess->length)))+ 1;
                                         //add number
-                                        char* okay = "OK!";
-                                        char* numStr;
+                                        char numStr[5];
                                         sprintf(numStr, "%d", mess->length);
+                                        char okay[15+mess->length];
+                                        okay[0] = '\0';
+                                        strcat(okay,"OK!");
                                         strcat(okay, numStr);
-                                        write(threadArgs->WRsocket, okay, 5 + digits+mess->length);
+                                        strcat(okay,"!");
+                                        printf("MESS: \"%s\"\n",mess->message);
+                                        strcat(okay,mess->message);
+                                        okay[strlen(okay)] = '\0';
+                                        write(threadArgs->WRsocket, okay,strlen(okay)+1);
+                                        printf("sending back: %s", okay);
                                         stdOut(ipName, "NXTMG", date);
                                         
                                 }
@@ -208,6 +214,7 @@ void* threadFunc(void* args){
                                 char bytes[10];
                                 while(c!= '!'){
                                         read(threadArgs->WRsocket, &c, 1);
+                                        printf("%c\n", c);
                                         bytes[index] = c;
                                         index++;
                                 }
@@ -216,6 +223,7 @@ void* threadFunc(void* args){
                                 //++num;
                                 char* messToRead = malloc(num);
                                 int n = read(threadArgs->WRsocket, messToRead, num);
+                                printf("str:%s\n", messToRead);
                                 if(messToRead[num-1]!= '\0'){//change to \0 when server is hooked up
                                         //printf("ER:WHAT?\n");
                                         write(threadArgs->WRsocket, "ER:WHAT?", 9);
@@ -234,8 +242,9 @@ void* threadFunc(void* args){
                                 okay[4] = '\0';
                                 char numStr[5];
                                 sprintf(numStr, "%d", num-1);
+                                numStr[strlen(numStr)] = '\0';
                                 strcat(okay, numStr);
-                                write(threadArgs->WRsocket, okay, strlen(okay));
+                                write(threadArgs->WRsocket, okay, strlen(okay)+1);
                                 stdOut(ipName, "PUTMG", date);
                         }
                 }else if(strcmp("DELBX", command)==0){
@@ -305,6 +314,7 @@ void* threadFunc(void* args){
                 }else if(strcmp("GDBYE", command)==0){
                         stdOut(ipName, "GDBYE", date);
                         readTillEnd(threadArgs->WRsocket);
+                        close(threadArgs->WRsocket);
                         return NULL;
                 }else{
                         write(threadArgs->WRsocket, "ER:WHAT?", 9);

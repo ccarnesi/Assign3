@@ -1,7 +1,4 @@
 #include "DUMBheader.h"
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
 
 void readTillNewLine();
 void sendpackage(),runner(),mailboxHandler(char type[], char mailbox[]);
@@ -83,7 +80,6 @@ void runner(int socket){
 		    mailbox[fixer-1]= '\0'; 
 		    strcpy(payload,"CREAT!");
 		    strcat(payload,mailbox);
-		    printf("%s %d \n", payload,strlen(payload));
 		    sendpackage(payload,socket,2,&run);
             }else if (strcmp("delete", command)==0){
 		    /*expect to get somehting back from server but after that we are good*/
@@ -112,15 +108,15 @@ void runner(int socket){
 		    int len = read(0,message,sizeof(message));
 		    // if this doesnt work swtich to sprinf
 		    message[len-1] = '\0';
-		    char snum[5]; 
-		    int diglen = sprintf(snum,"%d",len);
-		    snum[diglen-1] = '\0';
+		    char snum[5];
+		    snprintf(snum,4,"%d",len);
+		    //snum[diglen-1] = '\0';
+            printf("S:%s", snum);
                     strcpy(payload, "PUTMG!");
 		    strcat(payload,snum);
 		    strcat(payload,"!");
 		    strcat(payload,message);
 		    sendpackage(payload,socket,5,&run);
-            printf("PAY: \"%s\"\n", payload);
             }else if (strcmp("quit", command)==0){
 		    // have to edit this to make it work smoother
                     strcpy(payload, "GDBYE!");
@@ -137,9 +133,12 @@ void runner(int socket){
 }
 
 void readTillNewLine(int sock){
-        char c = '0';
+        char c = '`';
         while(c!='\0'){
             read(sock, &c, 1);
+            if(c == '`'){
+                    return;
+            }
         }
 }
 
@@ -150,16 +149,16 @@ int checker(int socket,int command,int len){
 	message[0] = 0;
 	int total = read(socket,message,3);
 	printf("at this point\n");
-	if(message[0]==0 && command==1){
+	if(total == 0 && command==1){
 		printf("Successfully quitting");
 		return 69;
 	}
+    
 	if(total==0){
 		printf("could not read message from server");
 		return -1;
 	}
 	message[total] = '\0';
-	printf("%s, %d",message,strlen(message));
 	if(strcmp("HEL",message)==0 && command ==0){
 		readTillNewLine(socket);
 		return 420;
@@ -183,10 +182,12 @@ int checker(int socket,int command,int len){
 				dig[count] = curr;
 				++count;
 			}
+            printf("len:%d\n", len);
 			char next[len];
 			int meslen = read(socket,&next,len);
 			next[meslen]= '\0';
 			printf("Next message received: %s \n",next);
+            return 0;
 		}	
 		readTillNewLine(socket);
 		return 0;
@@ -272,13 +273,12 @@ int checker(int socket,int command,int len){
 
 // helper method that sends the message and awaits the response from the socket
 void sendpackage(char * payload, int socket,int command,int * num){
-    printf("size: %d", strlen(payload));
 	if(send(socket, payload, strlen(payload)+1, 0)<0){
 		printf("Send Failed");
 		return;
 	}
 	// helper method that chekcs all of the possible errors or prints out correct message
-	int fquit = checker(socket,command,strlen(payload));
+	int fquit = checker(socket,command,2048);
 	if(fquit ==69){
 		*num = 1;
 	}

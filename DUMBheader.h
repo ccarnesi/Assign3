@@ -13,6 +13,7 @@
 #include <time.h>
 #include <netdb.h>
 #include <math.h>
+#include <fcntl.h>
 
 typedef struct messageNode{
         char* message;
