@@ -99,7 +99,7 @@ void runner(int socket){
 		    printf("What mail box would you like to close");
 		    int fixer = read(0,mailbox,sizeof(mailbox));
 		    mailbox[fixer-1] = '\0';
-		    strcpy(payload,"ClSBX!");
+		    strcpy(payload,"CLSBX!");
 		    strcat(payload,mailbox);
 		    sendpackage(payload,socket,7,&run);
             }else if (strcmp("next", command)==0){

@@ -89,7 +89,6 @@ void* threadFunc(void* args){
 
 
         stdOut(ipName, "connected", date);
-
         mailNode* currentBox = malloc(sizeof(mailNode*));
         currentBox = NULL;
         mailNode* head = *(threadArgs->head);
@@ -105,6 +104,7 @@ void* threadFunc(void* args){
                 }
                 command[5] = '\0';
                 printf("Command is: %s\n", command);
+                printf("Strcomp: %dd\n",strcmp("CLSBX",command));
                 if(strcmp("OPNBX", command)==0){
                                 char c = ' ';
                                 int i = read(*threadArgs->WRsocket, &c, 1);
