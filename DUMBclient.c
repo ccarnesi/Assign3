@@ -67,25 +67,27 @@ void runner(int socket){
             if(strcmp("open", command)==0){
 		    /*after mailbox is open we can just start reading other commands*/
                     printf("What mailbox would you like to open?\n");
-		    read(0,mailbox, sizeof(mailbox)); 
+		    int fixer = read(0,mailbox, sizeof(mailbox)); 
 		    strcpy(payload,"OPNBX!");
 		    strcat(payload,mailbox);
+		    mailbox[fixer] = '\0';
 		    /*this is where we send off to server and await reply*/
 		    sendpackage(payload,socket,3,&run);
             }else if (strcmp("create", command)==0){
 		    /*created mailbox but we still have to open one*/
                     printf("What would you like to call the mailbox?\n");
-		    read(0,mailbox, sizeof(mailbox));
+		    int fixer = read(0,mailbox, sizeof(mailbox));
+		    printf("printing what is inside of mailbox and length \n");
+		    mailbox[fixer]= '\0'; 
 		    strcpy(payload,"CREAT!");
 		    strcat(payload,mailbox);
-		    printf("%s", payload);
-		    printf("%d",strlen(payload));
-		    printf("just checking the spaces\n");
+		    printf("%s %d \n", payload,strlen(payload));
 		    sendpackage(payload,socket,2,&run);
             }else if (strcmp("delete", command)==0){
 		    /*expect to get somehting back from server but after that we are good*/
                     printf("Which mailbox would you like to delete?\n");
-		    read(0,mailbox, sizeof(mailbox));
+		    int fixer =read(0,mailbox, sizeof(mailbox));
+		    mailbox[fixer] = '\0';
 		    strcpy(payload,"DELBX!");
 		    strcat(payload,mailbox);
 		    sendpackage(payload,socket,6,&run);
@@ -93,7 +95,8 @@ void runner(int socket){
             }else if (strcmp("close", command)==0){
 		    /*similar to close box if we close it then we're good*/
 		    printf("What mail box would you like to close");
-		    read(0,mailbox,sizeof(mailbox));
+		    int fixer = read(0,mailbox,sizeof(mailbox));
+		    mailbox[fixer] = '\0';
 		    strcpy(payload,"ClSBX!");
 		    strcat(payload,mailbox);
 		    sendpackage(payload,socket,7,&run);
@@ -141,6 +144,7 @@ int checker(int socket,int command,int len){
 	char message[8];
 	message[0] = 0;
 	int total = read(socket,message,3);
+	printf("at this point\n");
 	if(message[0]==0 && command==1){
 		printf("Successfully quitting");
 		return 69;
@@ -185,6 +189,7 @@ int checker(int socket,int command,int len){
 		char substr[5];
 		read(socket,&message[3],5);
 		strcpy(substr,&message[3]);
+		printf("%s\n",message);
 		/*error happened now time to figure out what it was*/
 		/* gd 1 , creat 2, 6 delbx 3 opnbx, 7 clsbx, 4 nxtmg, 5 putmg*/
 		if(command==1){
