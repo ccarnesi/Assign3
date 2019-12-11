@@ -70,7 +70,7 @@ void runner(int socket){
 		    int fixer = read(0,mailbox, sizeof(mailbox)); 
 		    strcpy(payload,"OPNBX!");
 		    strcat(payload,mailbox);
-		    mailbox[fixer] = '\0';
+		    mailbox[fixer-1] = '\0';
 		    /*this is where we send off to server and await reply*/
 		    sendpackage(payload,socket,3,&run);
             }else if (strcmp("create", command)==0){
@@ -78,7 +78,7 @@ void runner(int socket){
                     printf("What would you like to call the mailbox?\n");
 		    int fixer = read(0,mailbox, sizeof(mailbox));
 		    printf("printing what is inside of mailbox and length \n");
-		    mailbox[fixer]= '\0'; 
+		    mailbox[fixer-1]= '\0'; 
 		    strcpy(payload,"CREAT!");
 		    strcat(payload,mailbox);
 		    printf("%s %d \n", payload,strlen(payload));
@@ -87,7 +87,7 @@ void runner(int socket){
 		    /*expect to get somehting back from server but after that we are good*/
                     printf("Which mailbox would you like to delete?\n");
 		    int fixer =read(0,mailbox, sizeof(mailbox));
-		    mailbox[fixer] = '\0';
+		    mailbox[fixer-1] = '\0';
 		    strcpy(payload,"DELBX!");
 		    strcat(payload,mailbox);
 		    sendpackage(payload,socket,6,&run);
@@ -96,7 +96,7 @@ void runner(int socket){
 		    /*similar to close box if we close it then we're good*/
 		    printf("What mail box would you like to close");
 		    int fixer = read(0,mailbox,sizeof(mailbox));
-		    mailbox[fixer] = '\0';
+		    mailbox[fixer-1] = '\0';
 		    strcpy(payload,"ClSBX!");
 		    strcat(payload,mailbox);
 		    sendpackage(payload,socket,7,&run);
@@ -109,7 +109,7 @@ void runner(int socket){
                     printf("What message would you like to put in the mailbox?\n");
 		    int len = read(0,message,sizeof(message));
 		    // if this doesnt work swtich to sprinf
-		    message[len] = '\0';
+		    message[len-1] = '\0';
 		    char snum[5]; 
 		    sprintf(snum,"%d",len);
                     strcpy(payload, "PUTMG!");
@@ -154,7 +154,7 @@ int checker(int socket,int command,int len){
 		printf("could not read message from server");
 		return -1;
 	}
-	message[total] = '\0';
+	message[total-1] = '\0';
 	printf("%s, %d",message,strlen(message));
 	if(strcmp("HEL",message)==0 && command ==0){
 		readTillNewLine(socket);
