@@ -69,7 +69,7 @@ void runner(int socket){
                     printf("What mailbox would you like to open?\n");
 		    read(0,mailbox, sizeof(mailbox)); 
 		    strcpy(payload,"OPNBX!");
-		    strcpy(&payload[6],mailbox);
+		    strcat(payload,mailbox);
 		    /*this is where we send off to server and await reply*/
 		    sendpackage(payload,socket,3,&run);
             }else if (strcmp("create", command)==0){
@@ -87,7 +87,7 @@ void runner(int socket){
                     printf("Which mailbox would you like to delete?\n");
 		    read(0,mailbox, sizeof(mailbox));
 		    strcpy(payload,"DELBX!");
-		    strcpy(&payload[6],mailbox);
+		    strcat(payload,mailbox);
 		    sendpackage(payload,socket,6,&run);
 		    /*add in error checker*/
             }else if (strcmp("close", command)==0){
@@ -95,7 +95,7 @@ void runner(int socket){
 		    printf("What mail box would you like to close");
 		    read(0,mailbox,sizeof(mailbox));
 		    strcpy(payload,"ClSBX!");
-		    strcpy(&payload[6],mailbox);
+		    strcat(payload,mailbox);
 		    sendpackage(payload,socket,7,&run);
             }else if (strcmp("next", command)==0){
 		    /*mailbox handler should print next message that we are trying to get*/
@@ -109,9 +109,9 @@ void runner(int socket){
 		    char snum[5]; 
 		    sprintf(snum,"%d",len);
                     strcpy(payload, "PUTMG!");
-		    strcpy(&payload[6],snum);
-		    strcpy(&payload[6+strlen(snum)],"!");
-		    strcpy(&payload[7+strlen(snum)],message);
+		    strcat(payload,snum);
+		    strcat(payload,"!");
+		    strcat(payload,message);
 		    sendpackage(payload,socket,5,&run);
             }else if (strcmp("quit", command)==0){
 		    // have to edit this to make it work smoother
