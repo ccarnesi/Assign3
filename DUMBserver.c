@@ -214,12 +214,13 @@ void* threadFunc(void* args){
                                 }
                                 bytes[++index] = '\0';
                                 int num = atoi(bytes);
-                                ++num;
-                                char* messToRead = malloc(sizeof(num));
+                                //++num;
+                                char* messToRead = malloc(num);
                                 int n = read(*threadArgs->WRsocket, messToRead, num);
-                                if(messToRead[n-1]!= '\0'|| n<num){//change to \0 when server is hooked up
+                                if(messToRead[num-1]!= '\0'){//change to \0 when server is hooked up
                                         //printf("ER:WHAT?\n");
                                         write(*threadArgs->WRsocket, "ER:WHAT?", 9);
+                                        printf("mess: \"%s\", num: %d, n:%d\n", messToRead, num);
                                         stdErr(ipName, "ER:WHAT?", date);
                                         if(n<num){
                                                 continue;
@@ -227,16 +228,15 @@ void* threadFunc(void* args){
                                         readTillEnd(*threadArgs->WRsocket);
                                         continue;
                                 }
-                                messToRead[n-1] = '\0';
                                 addMessage(num-1, messToRead,currentBox);
                                 //printf("OK!%d\n", num-1);
-                                int digits = floor(log10(abs(num-1)))+ 1;
                                 //add number
-                                char* okay = "OK!";
-                                char* numStr;
+                                char okay[11] = "OK!";
+                                okay[4] = '\0';
+                                char numStr[5];
                                 sprintf(numStr, "%d", num-1);
                                 strcat(okay, numStr);
-                                write(*threadArgs->WRsocket, okay, 4 + digits);
+                                write(*threadArgs->WRsocket, okay, strlen(okay));
                                 stdOut(ipName, "PUTMG", date);
                         }
                 }else if(strcmp("DELBX", command)==0){
@@ -361,11 +361,13 @@ mailNode* searchForMailBox(mailNode** head, char* mailName){
 
 void addMessage(int size, char * message, mailNode* current){
         messageNode* currentMess = current->messages;
-        messageNode* newNode = malloc(sizeof(messageNode*));
+        messageNode* newNode = malloc(sizeof(messageNode));
         newNode->message = message;
         newNode->next = NULL;
         newNode->length = size;
+        printf("Out\n");
         if(currentMess == NULL){
+                printf("IN\n");
                current->messages = newNode; 
         }else{
                 while(currentMess->next!= NULL){

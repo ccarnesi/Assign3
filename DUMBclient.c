@@ -57,7 +57,9 @@ void runner(int socket){
             char command[8];
             char mailbox[26];
 	    char message[2000];
+        memset(message, '.', 2000);
 	    char payload[2048];
+
             write(1, ">", 1);
             int n = read(0, command, sizeof(command));
             if(n<=7){
@@ -69,15 +71,15 @@ void runner(int socket){
                     printf("What mailbox would you like to open?\n");
 		    int fixer = read(0,mailbox, sizeof(mailbox)); 
 		    strcpy(payload,"OPNBX!");
-		    strcat(payload,mailbox);
 		    mailbox[fixer-1] = '\0';
+		    strcat(payload,mailbox);
 		    /*this is where we send off to server and await reply*/
 		    sendpackage(payload,socket,3,&run);
             }else if (strcmp("create", command)==0){
 		    /*created mailbox but we still have to open one*/
                     printf("What would you like to call the mailbox?\n");
 		    int fixer = read(0,mailbox, sizeof(mailbox));
-		    printf("printing what is inside of mailbox and length \n");
+		    printf("printing what is inside of mailbox and length %d\n", fixer);
 		    mailbox[fixer-1]= '\0'; 
 		    strcpy(payload,"CREAT!");
 		    strcat(payload,mailbox);
@@ -117,6 +119,7 @@ void runner(int socket){
 		    strcat(payload,"!");
 		    strcat(payload,message);
 		    sendpackage(payload,socket,5,&run);
+            printf("PAY: \"%s\"\n", payload);
             }else if (strcmp("quit", command)==0){
 		    // have to edit this to make it work smoother
                     strcpy(payload, "GDBYE!");
@@ -154,7 +157,7 @@ int checker(int socket,int command,int len){
 		printf("could not read message from server");
 		return -1;
 	}
-	message[total-1] = '\0';
+	message[total] = '\0';
 	printf("%s, %d",message,strlen(message));
 	if(strcmp("HEL",message)==0 && command ==0){
 		readTillNewLine(socket);
