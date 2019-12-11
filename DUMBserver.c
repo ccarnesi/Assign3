@@ -104,6 +104,7 @@ void* threadFunc(void* args){
                     i++;
                 }
                 command[5] = '\0';
+                printf("Command is: %s\n", command);
                 if(strcmp("OPNBX", command)==0){
                                 char c = ' ';
                                 int i = read(*threadArgs->WRsocket, &c, 1);
@@ -147,6 +148,7 @@ void* threadFunc(void* args){
                                 }
                 }else if(strcmp("CREAT", command)==0){
                         char c = ' ';
+                        stdOut("eh", "here", date);
                         int i = read(*threadArgs->WRsocket, &c, 1);
                         int n = read(*threadArgs->WRsocket, payload, 2048);
                         payload[n-1] = '\0';
@@ -165,6 +167,7 @@ void* threadFunc(void* args){
                                 stdErr(ipName, "ER:EXIST", date);
                         }else{
                                 write(*threadArgs->WRsocket, "OK!", 4);
+                                stdOut("rand", payload, date);
                                 stdOut(ipName, "CREAT", date);
                         }
                 }else if(strcmp("NXTMG", command)==0){
@@ -299,7 +302,7 @@ void* threadFunc(void* args){
                         //printf("HELLO DUMBv0 ready!\n");
                         stdOut(ipName, "HELLO", date);
                         write(*threadArgs->WRsocket, "HELLO DUMBv0 ready!", 20);
-                        readTillEnd(*threadArgs->WRsocket);
+                        //readTillEnd(*threadArgs->WRsocket);
                 }else if(strcmp("GDBYE", command)==0){
                         stdOut(ipName, "GDBYE", date);
                         readTillEnd(*threadArgs->WRsocket);
@@ -319,6 +322,7 @@ void* threadFunc(void* args){
 void readTillEnd(int client){
         char c = ' ';
         while(c!= '\0'){
+            printf("%c\n", c);
             read(client, &c, 1);
         }
 }

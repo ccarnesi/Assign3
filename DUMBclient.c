@@ -25,7 +25,7 @@ int main(int argc, char* argv[]){
 	serv_addr.sin_family= AF_INET;
     	serv_addr.sin_addr.s_addr = inet_addr(argv[1]);
 	serv_addr.sin_port = htons(port);
-	char hello[] = "HELLO";
+	char hello[] = "HELLO\0";
 	while(i<3){
 		if(connect(sock,(struct sockaddr *)&serv_addr,sizeof(serv_addr))<0){
 			++i;
@@ -153,6 +153,7 @@ int checker(int socket,int command,int len){
 		printf("could not read message from server");
 		return -1;
 	}
+    message[total] = '\0';
 	printf("%s, %d",message,strlen(message));
 	if(strcmp("HEL",message)==0 && command ==0){
 		readTillNewLine(socket);
