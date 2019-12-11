@@ -217,7 +217,7 @@ void* threadFunc(void* args){
                                 ++num;
                                 char* messToRead = malloc(sizeof(num));
                                 int n = read(*threadArgs->WRsocket, messToRead, num);
-                                if(messToRead[n-1]!= '\n'|| n<num){//change to \0 when server is hooked up
+                                if(messToRead[n-1]!= '\0'|| n<num){//change to \0 when server is hooked up
                                         //printf("ER:WHAT?\n");
                                         write(*threadArgs->WRsocket, "ER:WHAT?", 9);
                                         stdErr(ipName, "ER:WHAT?", date);
