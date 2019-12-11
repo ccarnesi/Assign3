@@ -13,12 +13,13 @@ void stdOut(char* ip, char* command, struct tm* date);
 void stdErr(char* ip, char* error, struct tm* date);
 
 pthread_mutex_t mainLock;
+mailNode* head = NULL;
 
 
 int main(int argc, char* argv[]){
     //init main lock
     pthread_mutex_init(&mainLock, NULL);
-    mailNode* head = malloc(sizeof(mailNode*));
+    mailNode* head = malloc(sizeof(mailNode));
     head = NULL;
 
 
@@ -62,15 +63,18 @@ int main(int argc, char* argv[]){
             printf("listen failed\n");
             return -1;
     }
-    int* conn_fd;
-    threadstruct* threadArgs = malloc(sizeof(threadstruct));
-        while((*conn_fd = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen))){
+    int conn_fd;
+    pthread_attr_t attrib;
+    pthread_attr_init(&attrib);
+    pthread_attr_setdetachstate(&attrib, PTHREAD_CREATE_DETACHED);
+        while((conn_fd = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen))){
+            threadstruct* threadArgs = malloc(sizeof(threadstruct));
+            int sockNo = conn_fd;
             pthread_t thread;
             threadArgs->head = &head;
             threadArgs->clientSock = &address;
-            threadArgs->WRsocket = *conn_fd;
-//            pthread_detach(thread);          
-            pthread_create(&thread, NULL, threadFunc, (void *)threadArgs);
+            threadArgs->WRsocket = sockNo;
+            pthread_create(&thread, &attrib, threadFunc, (void *)threadArgs);
 
         }
     return 0;    
@@ -90,12 +94,12 @@ void* threadFunc(void* args){
 
 
         stdOut(ipName, "connected", date);
-        mailNode* currentBox = malloc(sizeof(mailNode*));
+        mailNode* currentBox = malloc(sizeof(mailNode));
         currentBox = NULL;
-        mailNode* head = *(threadArgs->head);
         
         while(run ==1){
-                char* payload = malloc(sizeof(2048));
+                char* payload = malloc(2048);
+                memset(payload, '.', 2048);
                 int n = read(threadArgs->WRsocket,payload,5);
                 int i = 0;
                 char command[6];
@@ -104,7 +108,8 @@ void* threadFunc(void* args){
                     i++;
                 }
                 command[5] = '\0';
-                printf("Command is: %s\n", command);
+                printf("Sock:%d\n", threadArgs->WRsocket);
+                printf("Command is:%s\n",command);
                 if(strcmp("OPNBX", command)==0){
                                 char c = ' ';
                                 int i = read(threadArgs->WRsocket, &c, 1);
@@ -121,7 +126,7 @@ void* threadFunc(void* args){
                                         stdErr(ipName, "ER:ALOPN", date);
                                         continue;
                                 }
-                                mailNode* foundBox = searchForMailBox(&head, payload);
+                                mailNode* foundBox = searchForMailBox(threadArgs->head, payload);
                                 if(currentBox!= NULL && currentBox == foundBox){
                                         write(threadArgs->WRsocket, "ER:OPEND", 9);
                                         stdErr(ipName, "ER:OPEND", date);
@@ -148,7 +153,10 @@ void* threadFunc(void* args){
                                 }
                 }else if(strcmp("CREAT", command)==0){
                         char c = ' ';
+                        printf("Here\n");
+                        printf("Sock:%d\n", threadArgs->WRsocket);
                         int i = read(threadArgs->WRsocket, &c, 1);
+                        printf("ggg\n");
                         int n = read(threadArgs->WRsocket, payload, 2048);
                         payload[n-1] = '\0';
                         if(checkMailBoxConstraints(payload)==0){
@@ -160,13 +168,13 @@ void* threadFunc(void* args){
                         newNode->next = NULL;
                         pthread_mutex_init(&(newNode->nodeLock), NULL);
                         newNode->name = payload; //pass in name of Box
-                        int ret = addMailBoxToEnd(newNode, &head);
+                        printf("NAME: %s\n", newNode->name);
+                        int ret = addMailBoxToEnd(newNode, threadArgs->head);
                         if(ret==0){
                                 write(threadArgs->WRsocket, "ER:EXIST", 9);
                                 stdErr(ipName, "ER:EXIST", date);
                         }else{
                                 write(threadArgs->WRsocket, "OK!", 4);
-                                stdOut("rand", payload, date);
                                 stdOut(ipName, "CREAT", date);
                         }
                 }else if(strcmp("NXTMG", command)==0){
@@ -248,7 +256,7 @@ void* threadFunc(void* args){
                                 stdOut(ipName, "PUTMG", date);
                         }
                 }else if(strcmp("DELBX", command)==0){
-                        if(head == NULL){
+                        if(threadArgs->head == NULL){
                                 //report error
                                 write(threadArgs->WRsocket, "ER:NXEST", 9);
                                 stdErr(ipName, "ER:NEXST", date);
@@ -264,7 +272,7 @@ void* threadFunc(void* args){
                                         stdErr(ipName, "ER:WHAT?", date);
                                         continue;
                                 }
-                                int n = deleteMailBox(payload, &head);
+                                int n = deleteMailBox(payload, threadArgs->head);
                                 if(n==1){
                                         //success
                                         write(threadArgs->WRsocket, "OK!", 4);
@@ -311,6 +319,7 @@ void* threadFunc(void* args){
                         stdOut(ipName, "HELLO", date);
                         write(threadArgs->WRsocket, "HELLO DUMBv0 ready!", 20);
                         readTillEnd(threadArgs->WRsocket);
+                        printf("After clear\n");
                 }else if(strcmp("GDBYE", command)==0){
                         stdOut(ipName, "GDBYE", date);
                         readTillEnd(threadArgs->WRsocket);
@@ -331,7 +340,6 @@ void* threadFunc(void* args){
 void readTillEnd(int client){
         char c = ' ';
         while(c!= '\0'){
-            printf("%c\n", c);
             read(client, &c, 1);
         }
 }
@@ -345,8 +353,11 @@ int addMailBoxToEnd(mailNode* mail, mailNode** head){
             pthread_mutex_unlock(&mainLock);
             return 1;
         }
+        if(strcmp(current->name,mail->name)==0){
+                pthread_mutex_unlock(&mainLock);
+                return 0;
+        }
         while(current->next != NULL){
-                printf("mailName: %s\n", current->name);
                 if(strcmp(current->name,mail->name)==0){
                         pthread_mutex_unlock(&mainLock);
                         return 0;
