@@ -40,7 +40,7 @@ int main(int argc, char* argv[]){
     IPbuffer = inet_ntoa(*((struct in_addr*)hostInfo->h_addr_list[0]));
 
 
-    int server_fd, conn_fd, addrlen;
+    int server_fd, addrlen;
     struct sockaddr_in address;
     addrlen = sizeof(address);
 
@@ -62,12 +62,13 @@ int main(int argc, char* argv[]){
             printf("listen failed\n");
             return -1;
     }
+    int* conn_fd;
     threadstruct* threadArgs = malloc(sizeof(threadstruct));
-        while((conn_fd = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen))){
+        while((*conn_fd = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen))){
             pthread_t thread;
             threadArgs->head = &head;
             threadArgs->clientSock = &address;
-            threadArgs->WRsocket = &conn_fd;
+            threadArgs->WRsocket = *conn_fd;
 //            pthread_detach(thread);          
             pthread_create(&thread, NULL, threadFunc, (void *)threadArgs);
 
@@ -95,7 +96,7 @@ void* threadFunc(void* args){
         
         while(run ==1){
                 char* payload = malloc(sizeof(2048));
-                int n = read(*threadArgs->WRsocket,payload,5);
+                int n = read(threadArgs->WRsocket,payload,5);
                 int i = 0;
                 char command[6];
                 while (i<5){
@@ -104,26 +105,25 @@ void* threadFunc(void* args){
                 }
                 command[5] = '\0';
                 printf("Command is: %s\n", command);
-                printf("Strcomp: %dd\n",strcmp("CLSBX",command));
                 if(strcmp("OPNBX", command)==0){
                                 char c = ' ';
-                                int i = read(*threadArgs->WRsocket, &c, 1);
-                                int n = read(*threadArgs->WRsocket, payload, 2048);
+                                int i = read(threadArgs->WRsocket, &c, 1);
+                                int n = read(threadArgs->WRsocket, payload, 2048);
                                 payload[n-1] = '\0';
                                 if(checkMailBoxConstraints(payload)==0){
-                                        write(*threadArgs->WRsocket,"ER:WHAT?", 9);
+                                        write(threadArgs->WRsocket,"ER:WHAT?", 9);
                                         stdErr(ipName, "ER:WHAT?", date);
                                         continue;
                                 }
                                 
                                 if(currentBox!=NULL){
-                                        write(*threadArgs->WRsocket, "ER:ALOPN", 9);
+                                        write(threadArgs->WRsocket, "ER:ALOPN", 9);
                                         stdErr(ipName, "ER:ALOPN", date);
                                         continue;
                                 }
                                 mailNode* foundBox = searchForMailBox(&head, payload);
                                 if(currentBox!= NULL && currentBox == foundBox){
-                                        write(*threadArgs->WRsocket, "ER:OPEND", 9);
+                                        write(threadArgs->WRsocket, "ER:OPEND", 9);
                                         stdErr(ipName, "ER:OPEND", date);
                                         continue;
                                 }else{
@@ -131,29 +131,28 @@ void* threadFunc(void* args){
                                 }
                                 if(currentBox == NULL){
                                         //error
-                                        write(*threadArgs->WRsocket, "ER:NXEST", 9);
+                                        write(threadArgs->WRsocket, "ER:NXEST", 9);
                                         stdErr(ipName, "ER:NXEST", date);
                                 }else{
                                         //success
                                         if(pthread_mutex_trylock(&(currentBox->nodeLock))==0){
-                                                write(*threadArgs->WRsocket, "OK!", 4);
+                                                write(threadArgs->WRsocket, "OK!", 4);
                                                 stdOut(ipName, "OPNBX", date);
                                                 continue;
 
                                         }
                                         currentBox = NULL;
-                                        write(*threadArgs->WRsocket, "ER:OPEND", 9);
+                                        write(threadArgs->WRsocket, "ER:OPEND", 9);
                                         stdErr(ipName, "ER:OPEND", date);
                                         //send function to socket
                                 }
                 }else if(strcmp("CREAT", command)==0){
                         char c = ' ';
-                        stdOut("eh", "here", date);
-                        int i = read(*threadArgs->WRsocket, &c, 1);
-                        int n = read(*threadArgs->WRsocket, payload, 2048);
+                        int i = read(threadArgs->WRsocket, &c, 1);
+                        int n = read(threadArgs->WRsocket, payload, 2048);
                         payload[n-1] = '\0';
                         if(checkMailBoxConstraints(payload)==0){
-                                write(*threadArgs->WRsocket, "ER:WHAT?", 9);
+                                write(threadArgs->WRsocket, "ER:WHAT?", 9);
                                 stdErr(ipName, "ER:WHAT?", date);
                                 continue;
                         }
@@ -163,22 +162,22 @@ void* threadFunc(void* args){
                         newNode->name = payload; //pass in name of Box
                         int ret = addMailBoxToEnd(newNode, &head);
                         if(ret==0){
-                                write(*threadArgs->WRsocket, "ER:EXIST", 9);
+                                write(threadArgs->WRsocket, "ER:EXIST", 9);
                                 stdErr(ipName, "ER:EXIST", date);
                         }else{
-                                write(*threadArgs->WRsocket, "OK!", 4);
+                                write(threadArgs->WRsocket, "OK!", 4);
                                 stdOut("rand", payload, date);
                                 stdOut(ipName, "CREAT", date);
                         }
                 }else if(strcmp("NXTMG", command)==0){
                         //must be in a box
                         if(currentBox == NULL){
-                                write(*threadArgs->WRsocket, "ER:NOOPN", 9);
+                                write(threadArgs->WRsocket, "ER:NOOPN", 9);
                                 stdErr(ipName, "ER:NOOPN", date);
                         }else{
                                 messageNode* mess = fetchMessage(currentBox);
                                 if(mess ==NULL){
-                                        write(*threadArgs->WRsocket, "ER:EMPTY", 9);
+                                        write(threadArgs->WRsocket, "ER:EMPTY", 9);
                                         stdErr(ipName, "ER:EMPTY", date);
                                 }else{
                                         int digits = floor(log10(abs(mess->length)))+ 1;
@@ -187,28 +186,28 @@ void* threadFunc(void* args){
                                         char* numStr;
                                         sprintf(numStr, "%d", mess->length);
                                         strcat(okay, numStr);
-                                        write(*threadArgs->WRsocket, okay, 5 + digits+mess->length);
+                                        write(threadArgs->WRsocket, okay, 5 + digits+mess->length);
                                         stdOut(ipName, "NXTMG", date);
                                         
                                 }
                         }
-                        readTillEnd(*threadArgs->WRsocket);
+                        readTillEnd(threadArgs->WRsocket);
                 }else if(strcmp("PUTMG", command)==0){
                         //must be in a box
                         if(currentBox==NULL){
-                                write(*threadArgs->WRsocket, "ER:NOOPN", 9);
+                                write(threadArgs->WRsocket, "ER:NOOPN", 9);
                                 stdErr(ipName, "ER:NOOPN", date);
-                                readTillEnd(*threadArgs->WRsocket);
+                                readTillEnd(threadArgs->WRsocket);
                                 continue;
                         }else{
                                 //pass message instead of NULL
                                 char c = ' ';
-                                int i = read(*threadArgs->WRsocket, &c, 1);
+                                int i = read(threadArgs->WRsocket, &c, 1);
                                 c = '0';
                                 int index = 0;
                                 char bytes[10];
                                 while(c!= '!'){
-                                        read(*threadArgs->WRsocket, &c, 1);
+                                        read(threadArgs->WRsocket, &c, 1);
                                         bytes[index] = c;
                                         index++;
                                 }
@@ -216,16 +215,16 @@ void* threadFunc(void* args){
                                 int num = atoi(bytes);
                                 //++num;
                                 char* messToRead = malloc(num);
-                                int n = read(*threadArgs->WRsocket, messToRead, num);
+                                int n = read(threadArgs->WRsocket, messToRead, num);
                                 if(messToRead[num-1]!= '\0'){//change to \0 when server is hooked up
                                         //printf("ER:WHAT?\n");
-                                        write(*threadArgs->WRsocket, "ER:WHAT?", 9);
+                                        write(threadArgs->WRsocket, "ER:WHAT?", 9);
                                         printf("mess: \"%s\", num: %d, n:%d\n", messToRead, num);
                                         stdErr(ipName, "ER:WHAT?", date);
                                         if(n<num){
                                                 continue;
                                         }
-                                        readTillEnd(*threadArgs->WRsocket);
+                                        readTillEnd(threadArgs->WRsocket);
                                         continue;
                                 }
                                 addMessage(num-1, messToRead,currentBox);
@@ -236,41 +235,41 @@ void* threadFunc(void* args){
                                 char numStr[5];
                                 sprintf(numStr, "%d", num-1);
                                 strcat(okay, numStr);
-                                write(*threadArgs->WRsocket, okay, strlen(okay));
+                                write(threadArgs->WRsocket, okay, strlen(okay));
                                 stdOut(ipName, "PUTMG", date);
                         }
                 }else if(strcmp("DELBX", command)==0){
                         if(head == NULL){
                                 //report error
-                                write(*threadArgs->WRsocket, "ER:NXEST", 9);
+                                write(threadArgs->WRsocket, "ER:NXEST", 9);
                                 stdErr(ipName, "ER:NEXST", date);
-                                readTillEnd(*threadArgs->WRsocket);
+                                readTillEnd(threadArgs->WRsocket);
                         }else{
                                 //Search list of boxes. if found return ok else report error
                                 char c = ' ';
-                                read(*threadArgs->WRsocket, &c, 1);
-                                int x = read(*threadArgs->WRsocket, payload, 2048);
+                                read(threadArgs->WRsocket, &c, 1);
+                                int x = read(threadArgs->WRsocket, payload, 2048);
                                 payload[x-1] = '\0';
                                 if(checkMailBoxConstraints(payload)==0){
-                                        write(*threadArgs->WRsocket, "ER:WHAT?", 9);
+                                        write(threadArgs->WRsocket, "ER:WHAT?", 9);
                                         stdErr(ipName, "ER:WHAT?", date);
                                         continue;
                                 }
                                 int n = deleteMailBox(payload, &head);
                                 if(n==1){
                                         //success
-                                        write(*threadArgs->WRsocket, "OK!", 4);
+                                        write(threadArgs->WRsocket, "OK!", 4);
                                         stdOut(ipName, "DELBX", date);
                                 }else if(n ==-1){
                                         //error not empty
-                                        write(*threadArgs->WRsocket, "ER:NOTMT", 9);
+                                        write(threadArgs->WRsocket, "ER:NOTMT", 9);
                                         stdErr(ipName, "ER:NOTMT", date);
                                 }else if(n==0){
                                         //error doesnt exist
-                                        write(*threadArgs->WRsocket, "ER:NEXST", 9);
+                                        write(threadArgs->WRsocket, "ER:NEXST", 9);
                                         stdErr(ipName, "ER:NEXST", date);
                                 }else{
-                                        write(*threadArgs->WRsocket, "ER:OPEND", 9);
+                                        write(threadArgs->WRsocket, "ER:OPEND", 9);
                                         stdErr(ipName, "ER:OPEND", date);
                                 }
                         }
@@ -279,39 +278,39 @@ void* threadFunc(void* args){
                         if(currentBox == NULL){
                                 //error
                                 //printf("ER:NOOPN\n");
-                                write(*threadArgs->WRsocket, "ER:NOOPN", 9);
+                                write(threadArgs->WRsocket, "ER:NOOPN", 9);
                                 stdErr(ipName, "ER:NOOPN", date);
-                                readTillEnd(*threadArgs->WRsocket);
+                                readTillEnd(threadArgs->WRsocket);
                         }else{
                                 char c = NULL;
-                                int i = read(*threadArgs->WRsocket, &c, 1);
-                                int n = read(*threadArgs->WRsocket, payload, 2048);
+                                int i = read(threadArgs->WRsocket, &c, 1);
+                                int n = read(threadArgs->WRsocket, payload, 2048);
                                 payload[n-1] = '\0';
                                 if(currentBox!= NULL && strcmp(currentBox->name, payload)==0){
                                         pthread_mutex_unlock(&(currentBox->nodeLock));
                                         currentBox = NULL;
-                                        write(*threadArgs->WRsocket, "OK!", 4);
+                                        write(threadArgs->WRsocket, "OK!", 4);
                                         stdOut(ipName, "CLSBX", date);
                                 }else{
                                         //printf("ER:NOOPN\n");
-                                        write(*threadArgs->WRsocket, "ER:NOOPN", 9);
+                                        write(threadArgs->WRsocket, "ER:NOOPN", 9);
                                         stdErr(ipName, "ER:NOOPN", date);
                                 }
                         }
                 }else if(strcmp("HELLO", command)==0){
                         //printf("HELLO DUMBv0 ready!\n");
                         stdOut(ipName, "HELLO", date);
-                        write(*threadArgs->WRsocket, "HELLO DUMBv0 ready!", 20);
-                        readTillEnd(*threadArgs->WRsocket);
+                        write(threadArgs->WRsocket, "HELLO DUMBv0 ready!", 20);
+                        readTillEnd(threadArgs->WRsocket);
                 }else if(strcmp("GDBYE", command)==0){
                         stdOut(ipName, "GDBYE", date);
-                        readTillEnd(*threadArgs->WRsocket);
+                        readTillEnd(threadArgs->WRsocket);
                         return NULL;
                 }else{
-                        write(*threadArgs->WRsocket, "ER:WHAT?", 9);
+                        write(threadArgs->WRsocket, "ER:WHAT?", 9);
                         stdErr(ipName, "ER:WHAT?", date);
                         if(n==5){
-                                readTillEnd(*threadArgs->WRsocket);
+                                readTillEnd(threadArgs->WRsocket);
                         }
                 }
         }
@@ -337,6 +336,7 @@ int addMailBoxToEnd(mailNode* mail, mailNode** head){
             return 1;
         }
         while(current->next != NULL){
+                printf("mailName: %s\n", current->name);
                 if(strcmp(current->name,mail->name)==0){
                         pthread_mutex_unlock(&mainLock);
                         return 0;

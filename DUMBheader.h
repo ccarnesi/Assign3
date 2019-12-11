@@ -30,7 +30,7 @@ typedef struct mailNode{
 
 typedef struct threadstruct{
         struct sockaddr_in* clientSock;
-        int* WRsocket;
+        int WRsocket;
         mailNode** head;
 } threadstruct;
 
