@@ -56,7 +56,6 @@ void runner(int socket){
 	    char message[2000];
         memset(message, '.', 2000);
 	    char payload[2048];
-
             write(1, ">", 1);
             int n = read(0, command, sizeof(command));
             if(n<=7){
@@ -66,6 +65,7 @@ void runner(int socket){
             if(strcmp("open", command)==0){
 		    /*after mailbox is open we can just start reading other commands*/
                     printf("What mailbox would you like to open?\n");
+		    write(1, "open:> ", 7);
 		    int fixer = read(0,mailbox, sizeof(mailbox)); 
 		    strcpy(payload,"OPNBX!");
 		    mailbox[fixer-1] = '\0';
@@ -75,6 +75,7 @@ void runner(int socket){
             }else if (strcmp("create", command)==0){
 		    /*created mailbox but we still have to open one*/
                     printf("What would you like to call the mailbox?\n");
+		    write(1, "create:> ", 9);
 		    int fixer = read(0,mailbox, sizeof(mailbox));
 		    printf("printing what is inside of mailbox and length %d\n", fixer);
 		    mailbox[fixer-1]= '\0'; 
@@ -84,6 +85,7 @@ void runner(int socket){
             }else if (strcmp("delete", command)==0){
 		    /*expect to get somehting back from server but after that we are good*/
                     printf("Which mailbox would you like to delete?\n");
+		    write(1, "delete:> ", 9);
 		    int fixer =read(0,mailbox, sizeof(mailbox));
 		    mailbox[fixer-1] = '\0';
 		    strcpy(payload,"DELBX!");
@@ -92,7 +94,8 @@ void runner(int socket){
 		    /*add in error checker*/
             }else if (strcmp("close", command)==0){
 		    /*similar to close box if we close it then we're good*/
-		    printf("What mail box would you like to close");
+		    printf("What mail box would you like to close\n");
+		    write(1, "close:> ", 8);
 		    int fixer = read(0,mailbox,sizeof(mailbox));
 		    mailbox[fixer-1] = '\0';
 		    strcpy(payload,"CLSBX!");
@@ -105,13 +108,13 @@ void runner(int socket){
 		    /*run error checker and print msg*/
             }else if (strcmp("put", command)==0){
                     printf("What message would you like to put in the mailbox?\n");
+		    write(1, "put:> ", 6);
 		    int len = read(0,message,sizeof(message));
 		    // if this doesnt work swtich to sprinf
 		    message[len-1] = '\0';
 		    char snum[5];
 		    snprintf(snum,4,"%d",len);
 		    //snum[diglen-1] = '\0';
-            printf("S:%s", snum);
                     strcpy(payload, "PUTMG!");
 		    strcat(payload,snum);
 		    strcat(payload,"!");
@@ -196,8 +199,8 @@ int checker(int socket,int command,int len){
 	else{
 		char substr[6];
 		int errlen = read(socket,substr,5);	
-		substr[errlen] - '\0';
-		printf("%s\n",substr);
+		substr[errlen]= '\0';
+		printf("Substring that I picked up: %s\n",substr);
 		/*error happened now time to figure out what it was*/
 		/* gd 1 , creat 2, 6 delbx 3 opnbx, 7 clsbx, 4 nxtmg, 5 putmg*/
 		if(command==1){
@@ -205,6 +208,7 @@ int checker(int socket,int command,int len){
 			printf("Error, unable to close connection with the server\n");
 		}
 		else if(command ==2){
+			printf("Error on creating this is my string: %s\n",substr);
 			if(strcmp("EXIST",substr)==0){
 				printf("Error, can not create a box with the name of one that already exits\n");
 			}
@@ -213,7 +217,7 @@ int checker(int socket,int command,int len){
 			}
 		}
 		else if(command==3){
-			if(strcmp("NEXST",substr)==0){
+			if(strcmp("NXEST",substr)==0){
 				printf("Error, cannot open a box that does not exist\n");
 			}
 			else if(strcmp("ALOPN",substr)==0){
