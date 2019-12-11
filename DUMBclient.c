@@ -109,6 +109,7 @@ void runner(int socket){
                     printf("What message would you like to put in the mailbox?\n");
 		    int len = read(0,message,sizeof(message));
 		    // if this doesnt work swtich to sprinf
+		    message[len];
 		    char snum[5]; 
 		    sprintf(snum,"%d",len);
                     strcpy(payload, "PUTMG!");
@@ -153,6 +154,7 @@ int checker(int socket,int command,int len){
 		printf("could not read message from server");
 		return -1;
 	}
+	message[total] = '\0';
 	printf("%s, %d",message,strlen(message));
 	if(strcmp("HEL",message)==0 && command ==0){
 		readTillNewLine(socket);
