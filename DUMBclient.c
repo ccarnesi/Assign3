@@ -34,8 +34,8 @@ int main(int argc, char* argv[]){
 		else{
 			// we reached the server now lets see if hello works
 			printf("Conneted now trying hello\n");
-		       sendpackage(hello,sock,0,&hellowork);
-		       if(hellowork==1){
+			sendpackage(hello,sock,0,&hellowork);
+			if(hellowork==1){
 			       printf("DUMB mailbox is fully connected!\n");
 			       break;
 			}   
@@ -45,6 +45,8 @@ int main(int argc, char* argv[]){
 		printf("Error, unable to connect to the server, terminating program\n");
 		return -1;
 	}
+	
+	printf("Welcome! Please designate which message box you would like to open or create\n");
 	runner(sock);
 	return 0;
 }
@@ -57,7 +59,6 @@ void runner(int socket){
 	    char message[2000];
 	    char payload[2048];
             write(1, ">", 1);
-	    printf("Welcome! Please designate which message box you would like to open\n");
             int n = read(0, command, sizeof(command));
             if(n<=7){
                 command[n-1] = '\0';
@@ -76,7 +77,10 @@ void runner(int socket){
                     printf("What would you like to call the mailbox?\n");
 		    read(0,mailbox, sizeof(mailbox));
 		    strcpy(payload,"CREAT!");
-		    strcpy(&payload[6],mailbox);
+		    strcat(payload,mailbox);
+		    printf("%s", payload);
+		    printf("%d",strlen(payload));
+		    printf("just checking the spaces\n");
 		    sendpackage(payload,socket,2,&run);
             }else if (strcmp("delete", command)==0){
 		    /*expect to get somehting back from server but after that we are good*/
@@ -114,7 +118,6 @@ void runner(int socket){
                     strcpy(payload, "GDBYE!");
 		    sendpackage(payload,socket,1,&run);
                     //send load
-                    run = 1;
             }else{
                     printf("Error: Unknown Command. Try again\n");
             }
@@ -125,23 +128,30 @@ void runner(int socket){
         return;
 }
 
-void readTillNewLine(){
+void readTillNewLine(int sock){
         char c = '0';
-        while(c!='\n'){
-            read(1, &c, 1);
+        while(c!='\0'){
+            read(sock, &c, 1);
         }
 }
 
 /*method checks first three letters to see if we got an error or not*/
 int checker(int socket,int command,int len){
+	printf("at checker\n");
 	char message[8];
 	message[0] = 0;
-	read(socket,message,3);
+	int total = read(socket,message,3);
 	if(message[0]==0 && command==1){
 		printf("Successfully quitting");
 		return 69;
 	}
+	if(total==0){
+		printf("could not read message from server");
+		return -1;
+	}
+	printf("%s, %d",message,strlen(message));
 	if(strcmp("HEL",message)==0 && command ==0){
+		readTillNewLine(socket);
 		return 420;
 	}
 	if(strcmp("OK!",message)==0){
@@ -149,11 +159,9 @@ int checker(int socket,int command,int len){
 		/*important for when we are getting the next message must display that message*/
 		if(command==6 || command == 2 || command == 7 ||command == 5){
 			printf("Successfully processed command\n");
-			return 0;
 		}
 		else if(command ==3){
-			printf("Successsfully opened box, you now have exclusive accesss to it");
-			return 0;
+			printf("Successsfully opened box, you now have exclusive accesss to it\n");
 		}
 		else if(command==4){
 			//need to print message that we received for the user so go until we reach !
@@ -168,8 +176,9 @@ int checker(int socket,int command,int len){
 			char next[len];
 			read(socket,&next,len);
 			printf("Next message received: %s \n",next);
-			return 0;
 		}	
+		readTillNewLine(socket);
+		return 0;
 			
 	}
 	else{
@@ -181,88 +190,73 @@ int checker(int socket,int command,int len){
 		if(command==1){
 			/* if we see anything then its an error*/
 			if(substr[0]!='\0'){
-				printf("Error, unable to close connection with the server");
-				return -1;
+				printf("Error, unable to close connection with the server\n");
 			}
 		}
-		if(command ==2){
+		else if(command ==2){
 			if(strcmp("EXIST",substr)==0){
 				printf("Error, can not create a box with the name of one that already exits\n");
-				return -1;
 			}
 			else{
 				printf("Error, your message is broken or malformed\n");
-				return -1;
 			}
 		}
-		if(command==3){
+		else if(command==3){
 			if(strcmp("NEXST",substr)==0){
 				printf("Error, cannot open a box that does not exist\n");
-				return -1;
 			}
 			else if(strcmp("ALOPN",substr)==0){
 				printf("Error, cannot open a box that is already openi\n");
-				return -1;
 			}
 			else{
 				printf("Error, box is opened by another user already, please try again at a later time\n");
-				return -1;
 			}
 		}
-		if(command==4){
+		else if(command==4){
 			if(strcmp("EMPTY",substr)==0){
 				printf("Error, no messages left in the message box to retrieve\n");
-				return -1;
 			}
 			else if(strcmp("NOOPN",substr)==0){
 				printf("Error, no message box has been open yet\n");
-				return -1;
 			}
 			else{
 				printf("Error, your message is broken or malformed\n");
-				return -1;
 			}
 
 		}
-		if(command==5){
+		else if(command==5){
 			if(strcmp("NOOPN",substr)==0){
 				printf("Error, no message box open to put messages in\n");
-				return -1;
 			}
 			else{
 				printf("Error, you rmessage is broken or malformed\n");
-				return -1;
 			}
 		}
-		if(command ==6){
+		else if(command ==6){
 			if(strcmp("NEXST", substr)==0){
 			printf("Error, the message box you are trying to delete does not exist\n");
-				return -1;
 			}	
 			else if(strcmp("OPEND",substr)==0){
 				printf("Error, box is currently open so we cant delete it\n");
-				return -1;
 			}
 			else if(strcmp("NOTMT",substr)==0){
 				printf("Error, the mail box youa re trying to delete is not empty and still has messages inside\n");
-				return -1;
 			}
 			else{
 				printf("Error, your message is broken or malformed\n");
-				return -1;
 			}
 		}
-		if(command ==7){
+		else if(command ==7){
 			if(strcmp("NOOPN",substr)==0){
 				printf("Error, you currently do not have that message box open so we cannot close it\n");
-				return -1;
 			}
 			else{
 				printf("Error, your message is broken or malformed\n");
-				return -1;
 			}
 
 		}
+		readTillNewLine(socket);
+		return -1;
 	}	
 }
 
@@ -297,7 +291,7 @@ void mailboxHandler(char type[], char mailbox[]){
                      
                     }else{ 
                             printf("Error: Mailbox name was too long\n");
-                            readTillNewLine();
+                            readTillNewLine(1);
                     }
 		    return;
 }
