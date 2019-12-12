@@ -1,0 +1,16 @@
+﻿Jeancarlo Bolanos JB1618, Chris Carnesi CFC80
+
+
+Client: Our client runs a while loop expecting to receive commands in plain english, based off those commands we will send a message to the server and read whatever (or whatever isnt) outputted to it. 
+
+
+Testing DUMB client: The two biggest components in our test client was handling user input and being able to successfully translate that into something that the server can read and understand. When it came to testing we wanted to make sure that calling multiple commands or calling commands directly followed by arguments would not be allowed. In short, we basically just typed a lot of things that we close to what the server wanted but not exactly it to make sure our error checker was correct. We tested each an every possible error that would be returned by the server and made sure that when we received those errors from the server, we properly handled them and reported them to the user. Furthermore, we wanted to make sure that we could connect to the server from separate ssh’s so for example one client is on kill while the other is on ice. Through our testing we found that all of the errors were accounted for and handled properly and that we can connect from different locations. 
+
+
+ADDITIONAL ERROR: One thing we noticed that was not specified in the project was how we were to handle opening a box while already having one opened. In the project description, it did not state if we were to close the current box we had open or if we were to throw an error, so what we did was throw an error called ALOPN. This error was triggered if we tried to open a box while already having one open. The proper way of opening another box would be to close the one that you have currently open. 
+
+
+Server: By creating a linked list of mailboxes where each node in the linked list had a pointer to the next mailbox node and also a pointer to the first message in the respective box we were able to handle creating,deleting,closing,opening new boxes and putting and inserting new messages in those boxes. Using our locks we were able to prevent others from opening or deleting boxes that were already in use and thoroughly tested these things as described below. 
+
+
+Testing DUMB server: Since our DUMB server is meant to handle multiple connections at the same time, we decided to focus on testing the functionality of this the most. What my partner and I did was connect to the server via different ssh terminals and attempt to do the same commands at the same time. So creating mailboxes with the same names at the same time to make sure that we would be unable to create one but successfully create the other. We attempted this with opens and deletes as well. In addition, we made sure that we were reading what the client was sending us correctly and that we were sending the correct error messages based off of what was being sent to the server.
