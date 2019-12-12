@@ -108,8 +108,6 @@ void* threadFunc(void* args){
                     i++;
                 }
                 command[5] = '\0';
-                printf("Sock:%d\n", threadArgs->WRsocket);
-                printf("Command is:%s\n",command);
                 if(strcmp("OPNBX", command)==0){
                                 char c = ' ';
                                 int i = read(threadArgs->WRsocket, &c, 1);
@@ -153,10 +151,7 @@ void* threadFunc(void* args){
                                 }
                 }else if(strcmp("CREAT", command)==0){
                         char c = ' ';
-                        printf("Here\n");
-                        printf("Sock:%d\n", threadArgs->WRsocket);
                         int i = read(threadArgs->WRsocket, &c, 1);
-                        printf("ggg\n");
                         int n = read(threadArgs->WRsocket, payload, 2048);
                         payload[n-1] = '\0';
                         if(checkMailBoxConstraints(payload)==0){
@@ -168,7 +163,6 @@ void* threadFunc(void* args){
                         newNode->next = NULL;
                         pthread_mutex_init(&(newNode->nodeLock), NULL);
                         newNode->name = payload; //pass in name of Box
-                        printf("NAME: %s\n", newNode->name);
                         int ret = addMailBoxToEnd(newNode, threadArgs->head);
                         if(ret==0){
                                 write(threadArgs->WRsocket, "ER:EXIST", 9);
@@ -196,12 +190,11 @@ void* threadFunc(void* args){
                                         strcat(okay,"OK!");
                                         strcat(okay, numStr);
                                         strcat(okay,"!");
-                                        printf("MESS: \"%s\"\n",mess->message);
                                         strcat(okay,mess->message);
                                         okay[strlen(okay)] = '\0';
                                         write(threadArgs->WRsocket, okay,strlen(okay)+1);
-                                        printf("sending back: %s", okay);
                                         stdOut(ipName, "NXTMG", date);
+                                        free(mess);
                                         
                                 }
                         }
@@ -222,20 +215,17 @@ void* threadFunc(void* args){
                                 char bytes[10];
                                 while(c!= '!'){
                                         read(threadArgs->WRsocket, &c, 1);
-                                        printf("%c\n", c);
                                         bytes[index] = c;
                                         index++;
                                 }
                                 bytes[++index] = '\0';
                                 int num = atoi(bytes);
                                 //++num;
-                                char* messToRead = malloc(num);
+                                char* messToRead = malloc(sizeof(num));
                                 int n = read(threadArgs->WRsocket, messToRead, num);
-                                printf("str:%s\n", messToRead);
                                 if(messToRead[num-1]!= '\0'){//change to \0 when server is hooked up
                                         //printf("ER:WHAT?\n");
                                         write(threadArgs->WRsocket, "ER:WHAT?", 9);
-                                        printf("mess: \"%s\", num: %d, n:%d\n", messToRead, num);
                                         stdErr(ipName, "ER:WHAT?", date);
                                         if(n<num){
                                                 continue;
@@ -319,7 +309,6 @@ void* threadFunc(void* args){
                         stdOut(ipName, "HELLO", date);
                         write(threadArgs->WRsocket, "HELLO DUMBv0 ready!", 20);
                         readTillEnd(threadArgs->WRsocket);
-                        printf("After clear\n");
                 }else if(strcmp("GDBYE", command)==0){
                         stdOut(ipName, "GDBYE", date);
                         readTillEnd(threadArgs->WRsocket);
@@ -364,6 +353,10 @@ int addMailBoxToEnd(mailNode* mail, mailNode** head){
                 }
                 current = current->next;
         }
+        if(strcmp(current->name,mail->name)==0){
+                        pthread_mutex_unlock(&mainLock);
+                        return 0;
+        }
         current->next = mail;
         pthread_mutex_unlock(&mainLock);
         return 1;
@@ -386,9 +379,7 @@ void addMessage(int size, char * message, mailNode* current){
         newNode->message = message;
         newNode->next = NULL;
         newNode->length = size;
-        printf("Out\n");
         if(currentMess == NULL){
-                printf("IN\n");
                current->messages = newNode; 
         }else{
                 while(currentMess->next!= NULL){
@@ -420,7 +411,11 @@ int deleteMailBox(char* name, mailNode** head){
                                 pthread_mutex_unlock(&mainLock);
                                 return -2;
                 }
-                *head = (*head)->next;
+                pthread_mutex_destroy(&((*head)->nodeLock));
+                mailNode* newHead = (*head)->next;
+                mailNode* toFree = *head;
+                free(toFree);
+                *head = newHead;
                 pthread_mutex_unlock(&mainLock);
                 pthread_mutex_unlock(&(current->nodeLock));
                 return 1;
@@ -434,6 +429,9 @@ int deleteMailBox(char* name, mailNode** head){
                                 pthread_mutex_unlock(&mainLock);
                                 return -2;
                         }
+                        pthread_mutex_destroy(&(prev->next->nodeLock));
+                        mailNode* toFree = prev->next;
+                        free(toFree);
                         prev->next = current->next;
                         pthread_mutex_unlock(&mainLock);
                         pthread_mutex_unlock(&(current->nodeLock));

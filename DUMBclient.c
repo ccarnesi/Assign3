@@ -30,7 +30,6 @@ int main(int argc, char* argv[]){
 		}
 		else{
 			// we reached the server now lets see if hello works
-			printf("Conneted now trying hello\n");
 			sendpackage(hello,sock,0,&hellowork);
 			if(hellowork==1){
 			       printf("DUMB mailbox is fully connected!\n");
@@ -77,7 +76,6 @@ void runner(int socket){
                     printf("What would you like to call the mailbox?\n");
 		    write(1, "create:> ", 9);
 		    int fixer = read(0,mailbox, sizeof(mailbox));
-		    printf("printing what is inside of mailbox and length %d\n", fixer);
 		    mailbox[fixer-1]= '\0'; 
 		    strcpy(payload,"CREAT!");
 		    strcat(payload,mailbox);
@@ -147,13 +145,11 @@ void readTillNewLine(int sock){
 
 /*method checks first three letters to see if we got an error or not*/
 int checker(int socket,int command,int len){
-	printf("at checker\n");
 	char message[8];
 	message[0] = 0;
 	int total = read(socket,message,3);
-	printf("at this point\n");
 	if(total == 0 && command==1){
-		printf("Successfully quitting");
+		printf("Successfully quitting\n");
 		return 69;
 	}
     
@@ -185,7 +181,6 @@ int checker(int socket,int command,int len){
 				dig[count] = curr;
 				++count;
 			}
-            printf("len:%d\n", len);
 			char next[len];
 			int meslen = read(socket,&next,len);
 			next[meslen]= '\0';
